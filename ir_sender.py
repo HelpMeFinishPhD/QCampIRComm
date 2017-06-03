@@ -8,45 +8,41 @@ import time
 from buttons_panasonic_proj import button_dict as bd
 
 
-# Below contains information the user need to put forth to send IR signals
-mod_freq = 38000
-duty_cycle = 0.33
+def dict_to_bin(cmd):
+    return bin(bd[cmd])[2:]
 
-# ON-OFF sequences (in microseconds)
-ir_header = [3572, 1688] # 3572 us ON, 1688 us OFF
-ir_trail = [465, 1000] 
-ir_one = [465, 1252]
-ir_zero = [465, 384]
+class ir_receiver:
+    def __init__(self):
+        pass
 
-pre_data =  "\
-0100\
-0000\
-0000\
-0100\
-0000\
-0001\
-0001\
-0010\
-0000\
-0000\
-"
 
-button_press = bin(bd["KEY_POWER1"])[2:]
 
-patt_tosend = pre_data + button_press
+class ir_sender:
+    def __init__(self, mod_freq=3800, duty_cycle=0.33,
+                 header=[3572, 1688],  # 3572 us ON, 1688 us OFF
+                 trail=[465, 1000],
+                 one=[465, 1252],  # Pulse width of a logical one
+                 zero=[465, 384],  # Pulse width of a logical zero
+                 protocol="QCamp",
+                 cmd_dict=bd):
+        self.protocol = protocol
+        self.cmd_dict = bd
+        self.pre_data = dict_to_bin("PRE_DATA")
+        self.protocol_config = dict(frequency=mod_freq,
+                                    duty_cycle=duty_cycle,
+                                    ir_header=header,
+                                    ir_trail=trail,
+                                    ir_one=one,
+                                    ir_zero=zero)
 
-protocol = "QCamp"
-gpio_pin = 15
+    def ir_send(self, code=None, gpio_pin_out=15):
+        ir = pys.IR(gpio_pin_out, self.protocol, self.protocol_config)
+        code = self.pre_data + code
+        ir.send_code(code)
+        time.sleep(0.05)
+        ir.terminate_pigpio()
+        print(pre_data)
 
-protocol_config = dict(frequency = mod_freq,
-			duty_cycle = duty_cycle,
-			ir_header = ir_header,
-                        ir_trail = ir_trail,
-			ir_one = ir_one,
-			ir_zero = ir_zero)
-ir = pys.IR(gpio_pin, protocol, protocol_config)
-
-for i in range(30):
-    ir.send_code(patt_tosend)
-    time.sleep(0.05)
-ir.terminate_pigpio()
+if __name__ == '__main__':
+    dev = ir_sender()
+    dev.ir_send()

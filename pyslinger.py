@@ -9,7 +9,10 @@ import ctypes
 import time
 
 # This is the struct required by pigpio library.
-# We store the individual pulses and their duration here. (In an array of these structs.)
+# We store the individual pulses and their duration here. (In an array of
+# these structs.)
+
+
 class Pulses_struct(ctypes.Structure):
     _fields_ = [("gpioOn", ctypes.c_uint32),
                 ("gpioOff", ctypes.c_uint32),
@@ -17,13 +20,15 @@ class Pulses_struct(ctypes.Structure):
 
 # Since both NEC and RC-5 protocols use the same method for generating waveform,
 # it can be put in a separate class and called from both protocol's classes.
+
+
 class Wave_generator():
-    def __init__(self,protocol):
+    def __init__(self, protocol):
         self.protocol = protocol
         self.new_pulse()
 
     def new_pulse(self):
-        MAX_PULSES = 12000 # from pigpio.h
+        MAX_PULSES = 12000  # from pigpio.h
         Pulses_array = Pulses_struct * MAX_PULSES
         self.pulses = Pulses_array()
         self.pulse_count = 0
@@ -42,44 +47,56 @@ class Wave_generator():
     def one(self, duration):
         period_time = 1000000.0 / self.protocol.frequency
         on_duration = int(round(period_time * self.protocol.duty_cycle))
-        off_duration = int(round(period_time * (1.0 - self.protocol.duty_cycle)))
-        total_periods = int(round(duration/period_time))
+        off_duration = int(
+            round(period_time * (1.0 - self.protocol.duty_cycle)))
+        total_periods = int(round(duration / period_time))
         total_pulses = total_periods * 2
 
         # Generate square wave on the specified output pin
         for i in range(total_pulses):
             if i % 2 == 0:
-                self.add_pulse(1 << self.protocol.master.gpio_pin, 0, on_duration)
+                self.add_pulse(
+                    1 << self.protocol.master.gpio_pin, 0, on_duration)
             else:
-                self.add_pulse(0, 1 << self.protocol.master.gpio_pin, off_duration)
+                self.add_pulse(
+                    0, 1 << self.protocol.master.gpio_pin, off_duration)
 
 # NEC protocol class
+
+
 class NEC():
     def __init__(self,
-                master,
-                frequency=38000,
-                duty_cycle=0.33,
-                leading_pulse_duration=9000,
-                leading_gap_duration=4500,
-                one_pulse_duration = 562,
-                one_gap_duration = 1686,
-                zero_pulse_duration = 562,
-                zero_gap_duration = 562,
-                trailing_pulse = 0):
+                 master,
+                 frequency=38000,
+                 duty_cycle=0.33,
+                 leading_pulse_duration=9000,
+                 leading_gap_duration=4500,
+                 one_pulse_duration=562,
+                 one_gap_duration=1686,
+                 zero_pulse_duration=562,
+                 zero_gap_duration=562,
+                 trailing_pulse=0):
         self.master = master
         self.wave_generator = Wave_generator(self)
-        self.frequency = frequency # in Hz, 38000 per specification
-        self.duty_cycle = duty_cycle # duty cycle of high state pulse
+        self.frequency = frequency  # in Hz, 38000 per specification
+        self.duty_cycle = duty_cycle  # duty cycle of high state pulse
         # Durations of high pulse and low "gap".
         # The NEC protocol defines pulse and gap lengths, but we can never expect
         # that any given TV will follow the protocol specification.
-        self.leading_pulse_duration = leading_pulse_duration # in microseconds, 9000 per specification
-        self.leading_gap_duration = leading_gap_duration # in microseconds, 4500 per specification
-        self.one_pulse_duration = one_pulse_duration # in microseconds, 562 per specification
-        self.one_gap_duration = one_gap_duration # in microseconds, 1686 per specification
-        self.zero_pulse_duration = zero_pulse_duration # in microseconds, 562 per specification
-        self.zero_gap_duration = zero_gap_duration # in microseconds, 562 per specification
-        self.trailing_pulse = trailing_pulse # trailing 562 microseconds pulse, some remotes send it, some don't
+        # in microseconds, 9000 per specification
+        self.leading_pulse_duration = leading_pulse_duration
+        # in microseconds, 4500 per specification
+        self.leading_gap_duration = leading_gap_duration
+        # in microseconds, 562 per specification
+        self.one_pulse_duration = one_pulse_duration
+        # in microseconds, 1686 per specification
+        self.one_gap_duration = one_gap_duration
+        # in microseconds, 562 per specification
+        self.zero_pulse_duration = zero_pulse_duration
+        # in microseconds, 562 per specification
+        self.zero_gap_duration = zero_gap_duration
+        # trailing 562 microseconds pulse, some remotes send it, some don't
+        self.trailing_pulse = trailing_pulse
         print("NEC protocol initialized")
 
     # Send AGC burst before transmission
@@ -124,22 +141,24 @@ class NEC():
 # RC-5 protocol class
 # Note: start bits are not implemented here due to inconsistency between manufacturers.
 # Simply provide them with the rest of the IR code.
+
+
 class RC5():
     def __init__(self,
-                master,
-                frequency=36000,
-                duty_cycle=0.33,
-                one_duration=889,
-                zero_duration=889):
+                 master,
+                 frequency=36000,
+                 duty_cycle=0.33,
+                 one_duration=889,
+                 zero_duration=889):
         self.master = master
         self.wave_generator = Wave_generator(self)
-        self.frequency = frequency # in Hz, 36000 per specification
-        self.duty_cycle = duty_cycle # duty cycle of high state pulse
+        self.frequency = frequency  # in Hz, 36000 per specification
+        self.duty_cycle = duty_cycle  # duty cycle of high state pulse
         # Durations of high pulse and low "gap".
         # Technically, they both should be the same in the RC-5 protocol, but we can never expect
         # that any given TV will follow the protocol specification.
-        self.one_duration = one_duration # in microseconds, 889 per specification
-        self.zero_duration = zero_duration # in microseconds, 889 per specification
+        self.one_duration = one_duration  # in microseconds, 889 per specification
+        self.zero_duration = zero_duration  # in microseconds, 889 per specification
         print("RC-5 protocol initialized")
 
     # This function is processing IR code. Leaves room for possible manipulation
@@ -169,20 +188,23 @@ class RC5():
 # RAW IR ones and zeroes. Specify length for one and zero and simply bitbang the GPIO.
 # The default values are valid for one tested remote which didn't fit in NEC or RC-5 specifications.
 # It can also be used in case you don't want to bother with deciphering raw bytes from IR receiver:
-# i.e. instead of trying to figure out the protocol, simply define bit lengths and send them all here.
+# i.e. instead of trying to figure out the protocol, simply define bit
+# lengths and send them all here.
+
+
 class RAW():
     def __init__(self,
-                master,
-                frequency=36000,
-                duty_cycle=0.33,
-                one_duration=520,
-                zero_duration=520):
+                 master,
+                 frequency=36000,
+                 duty_cycle=0.33,
+                 one_duration=520,
+                 zero_duration=520):
         self.master = master
         self.wave_generator = Wave_generator(self)
-        self.frequency = frequency # in Hz
-        self.duty_cycle = duty_cycle # duty cycle of high state pulse
-        self.one_duration = one_duration # in microseconds
-        self.zero_duration = zero_duration # in microseconds
+        self.frequency = frequency  # in Hz
+        self.duty_cycle = duty_cycle  # duty cycle of high state pulse
+        self.one_duration = one_duration  # in microseconds
+        self.zero_duration = zero_duration  # in microseconds
 
     def process_code(self, ircode):
         for i in ircode:
@@ -204,41 +226,42 @@ class RAW():
     def one(self):
         self.wave_generator.one(self.one_duration)
 
+
 class QCamp():
     def __init__(self,
-                master,
-                frequency=38000,
-                duty_cycle=0.33,
-		ir_header = [5000, 5000],
-		ir_trail = [1000, 1000],
-		ir_one = [1000, 200],
-		ir_zero = [200, 1000],
-		):
+                 master,
+                 frequency=38000,
+                 duty_cycle=0.33,
+                 ir_header=[5000, 5000],
+                 ir_trail=[1000, 1000],
+                 ir_one=[1000, 200],
+                 ir_zero=[200, 1000],
+                 ):
         self.master = master
         self.wave_generator = Wave_generator(self)
-        self.frequency = frequency # in Hz, 38000 per specification
-        self.duty_cycle = duty_cycle # duty cycle of high state pulse
-	self.ir_header = ir_header
-	self.ir_trail = ir_trail
-	self.ir_one = ir_one
-	self.ir_zero = ir_zero
+        self.frequency = frequency  # in Hz, 38000 per specification
+        self.duty_cycle = duty_cycle  # duty cycle of high state pulse
+        self.ir_header = ir_header
+        self.ir_trail = ir_trail
+        self.ir_one = ir_one
+        self.ir_zero = ir_zero
         print("QCamp IR protocol initialized")
 
     # Construct pulses with a certain array (ON-OFF pattern, starting with ON)
     def construct_pulse(self, pulse_arr):
-	for elem in range(len(pulse_arr)):
-	    if elem%2 == 0: 
-  	        self.wave_generator.one(pulse_arr[elem])
-  	    else:
+        for elem in range(len(pulse_arr)):
+            if elem % 2 == 0:
+                self.wave_generator.one(pulse_arr[elem])
+            else:
                 self.wave_generator.zero(pulse_arr[elem])
 
     # This function is processing IR code. Leaves room for possible manipulation
     # of the code before processing it.
-    
+
     def process_code(self, ircode):
-    	# Clear a new clean entry of the pulse
-    	self.wave_generator.new_pulse() 
-    	# First, send ir pulse header
+        # Clear a new clean entry of the pulse
+        self.wave_generator.new_pulse()
+        # First, send ir pulse header
         self.construct_pulse(self.ir_header)
         # Second, send the pulses
         for i in ircode:
@@ -257,14 +280,15 @@ class QCamp():
 class IR():
     def __init__(self, gpio_pin, protocol, protocol_config):
         print("Starting IR")
-        #print("Loading libpigpio.so")
+        # print("Loading libpigpio.so")
         self.pigpio = ctypes.CDLL('libpigpio.so')
-        #print("Initializing pigpio")
-        PI_OUTPUT = 1 # from pigpio.h
+        # print("Initializing pigpio")
+        PI_OUTPUT = 1  # from pigpio.h
         self.pigpio.gpioInitialise()
         self.gpio_pin = gpio_pin
         print("Configuring pin %d as output" % self.gpio_pin)
-        self.pigpio.gpioSetMode(self.gpio_pin, PI_OUTPUT) # pin 17 is used in LIRC by default
+        # pin 17 is used in LIRC by default
+        self.pigpio.gpioSetMode(self.gpio_pin, PI_OUTPUT)
         print("Initializing protocol")
         if protocol == "NEC":
             self.protocol = NEC(self, **protocol_config)
@@ -280,7 +304,8 @@ class IR():
         print("IR ready")
 
     # send_code takes care of sending the processed IR code to pigpio.
-    # IR code itself is processed and converted to pigpio structs by protocol's classes.
+    # IR code itself is processed and converted to pigpio structs by
+    # protocol's classes.
     def send_code(self, ircode='111000111'):
         print("Processing IR code: %s" % ircode)
         code = self.protocol.process_code(ircode)
@@ -291,17 +316,19 @@ class IR():
         if clear != 0:
             print("Error in clearing wave!")
             return 1
-        pulses = self.pigpio.gpioWaveAddGeneric(self.protocol.wave_generator.pulse_count, self.protocol.wave_generator.pulses)
+        pulses = self.pigpio.gpioWaveAddGeneric(
+            self.protocol.wave_generator.pulse_count, self.protocol.wave_generator.pulses)
         if pulses < 0:
             print("Error in adding wave!")
             return 1
         wave_id = self.pigpio.gpioWaveCreate()
-        # Unlike the C implementation, in Python the wave_id seems to always be 0.
+        # Unlike the C implementation, in Python the wave_id seems to always be
+        # 0.
         if wave_id >= 0:
-            #print("Sending wave...")
+            # print("Sending wave...")
             result = self.pigpio.gpioWaveTxSend(wave_id, 0)
             if result >= 0:
-                #print("Success! (result: %d)" % result)
+                # print("Success! (result: %d)" % result)
                 print("Pulse sent!")
             else:
                 print("Error! (result: %d)" % result)
@@ -322,6 +349,8 @@ class IR():
 # override the protocol defaults with the dictionary if required.
 # Provide the IR code to the send_code() method.
 # An example is given below.
+
+
 if __name__ == "__main__":
     protocol = "QCamp"
     gpio_pin = 15
