@@ -3,6 +3,7 @@ from buttons_panasonic_proj import button_dict as bd
 
 
 file_location = "/home/pi/out.dat"
+
 def rounder(tup):
     off_time = tup[0]
     on_time = tup[1]
