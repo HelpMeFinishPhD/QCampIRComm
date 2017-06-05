@@ -38,11 +38,12 @@ class ir_sender:
     def ir_send(self, code=None, gpio_pin_out=15):
         ir = pys.IR(gpio_pin_out, self.protocol, self.protocol_config)
         code = self.pre_data + code
+	print(code)
         ir.send_code(code)
         time.sleep(0.05)
         ir.terminate_pigpio()
-        print(pre_data)
 
 if __name__ == '__main__':
     dev = ir_sender()
-    dev.ir_send()
+    power_on = bin(bd['KEY_POWER1'])[2:]
+    dev.ir_send(power_on, 15)

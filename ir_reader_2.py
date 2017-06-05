@@ -7,16 +7,30 @@ length = 0
 
 
 def rounder(tup):
-    if tup[0] > 3000 and tup[0] < 3650:
-        return "h"
-    else:
-        ot = tup[1]
-        if ot > 1400:
-            return "t"
-        elif ot > 700:
-            return "1"
+    off_time = tup[0]
+    on_time = tup[1]
+    err_margin = 50
+    trail_range = (465,2000)
+    header_range = (3572,1688)
+    zero_range = (465,1252)
+    one_range = (465,385)
+    if off_time > header_range[0] - err_margin:
+        if off_time < header_range[0] + err_margin :
+	    return "h"
         else:
-            return "0"
+            print('not recognized pulse length')
+            return None
+   
+    if off_time < one_range[0] or on_time < one_range[1]:
+	print('pulse not recognized')
+	return None
+
+    if on_time > trail_range[1] - err_margin and on_time < trail_range[1] + err_margin:
+        return "t"
+    elif on_time > zero_range[1] - err_margin and on_time <  zero_range[1] - err_margin:
+        return "1"
+    else:
+        return "0"
 
 
 rev_button_dict = {}
@@ -33,6 +47,7 @@ def bin_mappers(lst):
         print("Count loudly to 10 before Trying Again.")
         time.sleep(3)
         return "Please count louder, I cannot hear you."
+    
     else:
         str = ""
         hold = ()
@@ -43,6 +58,9 @@ def bin_mappers(lst):
             else:
                 hold += (proc_lst[i],)
                 str_add = rounder(hold)
+		if str_add == None:
+		    print('pulse not recognized')
+		    return None
                 if str_add == "t" and i == len(proc_lst) - 1:
                     break
                 if str_add == "t":
@@ -71,8 +89,6 @@ while True:
         file_object.seek(0)
         temp1 = file_object.readlines()[length:]
         file_object.close()
-        str_output = bin_mappers(temp1)[1:]
-        for elem in str_output:
-            # print(hex(int(str_output,2)))
-            print(rev_button_dict[hex(int(elem[-16:], 2))])
+        str_output = bin_mappers(temp1)
+        print(str_output)
         length += len(temp1)
