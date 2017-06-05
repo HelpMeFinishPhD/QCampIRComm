@@ -118,10 +118,12 @@ def do_it():
                 start_word_flag = True
             if start_word_flag == True:
                 word.append(letter)
-            if letter =-'t' or len(word) >= word_length:
-                start_word_flag = False
+            if (letter == 't') or (len(word) >= word_length):
                 word_completed(word)
                 print(word) # Here everything can happen
+                start_word_flag = False
+                word=[] # clean up word again
+
         elif:
             counter=1
 
