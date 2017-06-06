@@ -1,9 +1,10 @@
 button_dict = {
-    "header": (3572, 1688),
-    "trailer": (465, 2000),
+    "header": (3500, 1688),
+    "trailer": (465, 75050),
     "zero": (465, 1252),
     "one": (465, 385),
-    "margin": 40,
+    "margin": 100,
+    "word_length":56,
     "PRE_DATA": 0x4004011200,
     "KEY_POWER1": 0xBCAF,  # Was: Power
     "Theater_Room": 0x7162,
