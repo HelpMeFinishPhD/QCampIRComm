@@ -232,19 +232,18 @@ class QCamp():
                  master,
                  frequency=38000,
                  duty_cycle=0.33,
-                 ir_header=[5000, 5000],
-                 ir_trail=[1000, 1000],
-                 ir_one=[1000, 200],
-                 ir_zero=[200, 1000],
-                 ):
+                 header=(3572, 1688),  # 3572 us ON, 1688 us OFF
+                 trail=(465, 1000),
+                 one=(465, 1252),  # Pulse width of a logical one
+                 zero=(465, 384)):
         self.master = master
         self.wave_generator = Wave_generator(self)
         self.frequency = frequency  # in Hz, 38000 per specification
         self.duty_cycle = duty_cycle  # duty cycle of high state pulse
-        self.ir_header = ir_header
-        self.ir_trail = ir_trail
-        self.ir_one = ir_one
-        self.ir_zero = ir_zero
+        self.header = header
+        self.trail = trail
+        self.one = one
+        self.zero = zero
         print("QCamp IR protocol initialized")
 
     # Construct pulses with a certain array (ON-OFF pattern, starting with ON)
@@ -316,8 +315,8 @@ class IR():
         if clear != 0:
             print("Error in clearing wave!")
             return 1
-        pulses = self.pigpio.gpioWaveAddGeneric(
-            self.protocol.wave_generator.pulse_count, self.protocol.wave_generator.pulses)
+        pulses = self.pigpio.gpioWaveAddGeneric(self.protocol.wave_generator.pulse_count,
+                                                self.protocol.wave_generator.pulses)
         if pulses < 0:
             print("Error in adding wave!")
             return 1
@@ -356,5 +355,5 @@ if __name__ == "__main__":
     gpio_pin = 15
     protocol_config = {}
     ir = IR(gpio_pin, protocol, protocol_config)
-    ir.send_code()
+    ir.send_code('')
     ir.terminate_pigpio()
